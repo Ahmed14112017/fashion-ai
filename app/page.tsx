@@ -1,65 +1,164 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
 
 export default function Home() {
+  const [form, setForm] = useState({
+    productName: "",
+    type: "",
+    colors: "",
+    sizes: "",
+    price: "",
+  });
+  const [result, setResult] = useState<{
+    desc: string;
+    caption: string;
+    hashtags: string[];
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function generate() {
+    if (!form.productName.trim()) return;
+    setLoading(true);
+    setResult(null);
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    const text = data.result || "";
+
+    const descMatch = text.match(
+      /\*\*الوصف:\*\*\s*([\s\S]*?)(?=\*\*الكابشن:|$)/,
+    );
+    const captionMatch = text.match(
+      /\*\*الكابشن:\*\*\s*([\s\S]*?)(?=\*\*الهاشتاقات:|$)/,
+    );
+    const hashtagsMatch = text.match(/\*\*الهاشتاقات:\*\*\s*([\s\S]*?)$/);
+    const hashtags = hashtagsMatch
+      ? hashtagsMatch[1]
+          .trim()
+          .split(/\s+/)
+          .filter((t: string) => t.startsWith("#"))
+      : [];
+
+    setResult({
+      desc: descMatch ? descMatch[1].trim() : text,
+      caption: captionMatch ? captionMatch[1].trim() : "",
+      hashtags,
+    });
+    setLoading(false);
+  }
+
+  function copy(text: string) {
+    navigator.clipboard.writeText(text);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="max-w-2xl mx-auto p-8 font-sans">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-medium mb-1">
+          كتابة محتوى Instagram بالـ AI
+        </h1>
+        <p className="text-gray-500 text-sm">
+          وصف + كابشن + هاشتاقات لمتجرك في ثانية
+        </p>
+      </div>
+
+      <div className="border border-gray-200 rounded-xl p-6 mb-4">
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {[
+            {
+              name: "productName",
+              placeholder: "اسم المنتج — مثال: فستان صيفي",
+              label: "اسم المنتج",
+            },
+            { name: "type", placeholder: "مثال: فستان، جاكيت", label: "النوع" },
+            {
+              name: "colors",
+              placeholder: "مثال: أبيض، أسود، بيج",
+              label: "الألوان",
+            },
+            {
+              name: "sizes",
+              placeholder: "مثال: S, M, L, XL",
+              label: "المقاسات",
+            },
+          ].map((f) => (
+            <div key={f.name} className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">{f.label}</label>
+              <input
+                className="border rounded-lg p-2 text-sm"
+                name={f.name}
+                placeholder={f.placeholder}
+                onChange={handleChange}
+              />
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex flex-col gap-1 mb-4">
+          <label className="text-xs text-gray-500">السعر بالجنيه</label>
+          <input
+            className="border rounded-lg p-2 text-sm"
+            name="price"
+            placeholder="مثال: 350"
+            onChange={handleChange}
+          />
         </div>
-      </main>
-    </div>
+        <button
+          className="w-full py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors"
+          onClick={generate}
+        >
+          {loading ? "بيكتب..." : "اكتب الكابشن والوصف"}
+        </button>
+      </div>
+
+      {result && (
+        <div className="border border-gray-200 rounded-xl p-6 flex flex-col gap-4">
+          {[
+            { label: "الوصف", text: result.desc },
+            { label: "الكابشن", text: result.caption },
+          ].map((s) => (
+            <div key={s.label} className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500 mb-2 font-medium">
+                {s.label}
+              </p>
+              <p className="text-sm leading-relaxed text-right" dir="rtl">
+                {s.text}
+              </p>
+              <button
+                className="mt-2 text-xs border border-gray-200 rounded-md px-3 py-1 text-gray-500 hover:bg-gray-100"
+                onClick={() => copy(s.text)}
+              >
+                نسخ
+              </button>
+            </div>
+          ))}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <p className="text-xs text-gray-500 mb-2 font-medium">الهاشتاقات</p>
+            <div className="flex flex-wrap gap-2" dir="rtl">
+              {result.hashtags.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-blue-50 text-blue-600 text-xs px-3 py-1 rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <button
+              className="mt-2 text-xs border border-gray-200 rounded-md px-3 py-1 text-gray-500 hover:bg-gray-100"
+              onClick={() => copy(result.hashtags.join(" "))}
+            >
+              نسخ
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
